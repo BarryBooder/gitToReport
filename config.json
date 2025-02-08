@@ -1,0 +1,7 @@
+{
+  "api_key": "xxxxxxxxxxxxx",
+  "base_url": "xxxxxxxxxxxxxxx",
+  "model": "xxxxxxxxxxxxxxx",
+  "default_period": "weekly",
+  "default_output_file": "output.json"
+}
