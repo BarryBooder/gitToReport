@@ -3,5 +3,5 @@
   "base_url": "xxxxxxxxxxxxxxx",
   "model": "xxxxxxxxxxxxxxx",
   "default_period": "weekly",
-  "default_output_file": "output.json"
+  "default_output_file": "gitOutput/output.json"
 }

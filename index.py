@@ -1,6 +1,7 @@
 # index.py
 
 import argparse
+import os
 import sys
 
 from config import load_config, merge_config
@@ -30,6 +31,10 @@ def main():
                         help="生成对应的 日报/周报/月报（输出 day-report.md/week-report.md/month-report.md）")
 
     args = parser.parse_args()
+
+    # 0) 处理文件夹
+    os.makedirs("gitOutput", exist_ok=True)
+    os.makedirs("gitOutput/prompt", exist_ok=True)
 
     # 1) 先加载文件配置
     file_cfg = load_config()  # 默认读取 config.json
@@ -90,7 +95,8 @@ def main():
     # 7) 若需要生成AI报告，则调用 generate_report
     if args.generate_report:
         # 使用 final_cfg["model"] 作为默认模型
-        generate_report(args.generate_report, commits_data, model=final_cfg["model"])
+        generate_report(args.generate_report, commits_data, model=final_cfg["model"], since_date=since_date,
+                        until_date=until_date, date_str=date_str)
 
 
 if __name__ == "__main__":

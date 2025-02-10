@@ -6,7 +6,7 @@ import subprocess
 import re
 from datetime import datetime, timedelta
 import json
-
+from tqdm import tqdm
 
 def compute_period_dates(period):
     """
@@ -51,12 +51,15 @@ def compute_single_day_dates(date_str):
 
 def get_git_repos(root_path):
     """
-    递归查找含 .git 的仓库根目录
+    递归查找含 .git 的仓库根目录，并显示进度。
     """
     git_repos = []
-    for dirpath, dirnames, filenames in os.walk(root_path):
+    print("正在查找 Git 仓库，请稍候...")
+
+    for dirpath, dirnames, filenames in tqdm(os.walk(root_path), desc="已扫描", unit="dir"):
         if '.git' in dirnames:
             git_repos.append(dirpath)
+
     return git_repos
 
 
@@ -165,7 +168,7 @@ def get_diff_lines_of_commit(repo_path, commit_hash, exclude_list=None):
 
 
 def scan_git_repos(root_path, period=None, single_day_str=None,
-                   authors_str="", excludes_str="", output_json="output.json"):
+                   authors_str="", excludes_str="", output_json="gitOutput/output.json"):
     """
     综合的扫描函数，用于外部调用。
     """
@@ -185,15 +188,21 @@ def scan_git_repos(root_path, period=None, single_day_str=None,
     git_repos = get_git_repos(root_path)
     repo_count = len(git_repos)
 
+    if not git_repos:
+        print("未找到 Git 仓库，退出...")
+        return [], 0, 0, 0, since_date, until_date, actual_period
+
     total_commits = 0
     total_diff_lines = 0
     commits_data = []
 
-    for repo_path in git_repos:
+    # 遍历所有仓库，添加进度条
+    for repo_path in tqdm(git_repos, desc="Repositories 扫描进度", unit="repo"):
         commit_hashes = get_commits(repo_path, since_date, until_date, authors_list)
         total_commits += len(commit_hashes)
 
-        for commit_hash in commit_hashes:
+        # 遍历每个提交，添加进度条
+        for commit_hash in tqdm(commit_hashes, desc=f"正在处理 {os.path.basename(repo_path)} 中的 Commits", unit="commit", leave=False):
             commit_info = get_commit_info(repo_path, commit_hash)
             code_diff = get_code_diff(repo_path, commit_hash, exclude_list)
             diff_line_count = get_diff_lines_of_commit(repo_path, commit_hash, exclude_list)
@@ -208,4 +217,4 @@ def scan_git_repos(root_path, period=None, single_day_str=None,
     with open(output_json, "w", encoding="utf-8") as f:
         json.dump(commits_data, f, ensure_ascii=False, indent=4)
 
-    return (commits_data, repo_count, total_commits, total_diff_lines, since_date, until_date, actual_period)
+    return commits_data, repo_count, total_commits, total_diff_lines, since_date, until_date, actual_period

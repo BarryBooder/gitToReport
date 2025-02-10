@@ -1,6 +1,8 @@
 # ai_helper.py
-
+import datetime
 import json
+import time
+
 import requests
 
 # 这两个全局变量在 init_ai() 中赋值，供 generate_report() 使用
@@ -29,12 +31,12 @@ def init_ai(api_key, base_url=None):
     }
 
 
-def generate_report(report_type, commits_data, model="gpt-3.5-turbo"):
+def generate_report(report_type, commits_data, model, since_date, until_date, date_str):
     """
     调用 AI 接口，生成日报 / 周报 / 月报：
     - report_type: 'daily' / 'weekly' / 'monthly'
     - commits_data: 来自 scan_git_repos 的提交列表
-    - model: 默认 'gpt-3.5-turbo'，可指定 'gpt-4' 等
+    - model: 模型名称
     """
 
     if not commits_data:
@@ -43,21 +45,23 @@ def generate_report(report_type, commits_data, model="gpt-3.5-turbo"):
 
     # 把提交数据序列化成 JSON 以便给AI
     diff_json = json.dumps(commits_data, ensure_ascii=False, indent=2)
-
+    # 转换成 datetime.date 类型
+    since_date = datetime.datetime.strptime(since_date, "%Y-%m-%d %H:%M:%S").date()
+    until_date = datetime.datetime.strptime(until_date, "%Y-%m-%d %H:%M:%S").date()
     if report_type == "daily":
-        filename = "day-report.md"
+        filename = f"report/{date_str}_day-report.md"
         period_name = "日报"
     elif report_type == "weekly":
-        filename = "week-report.md"
+        filename = f"report/{since_date.strftime('%Y%m%d')}-{until_date.strftime('%Y%m%d')}_week-report.md"
         period_name = "周报"
     elif report_type == "monthly":
-        filename = "month-report.md"
+        filename = f"report/{since_date.strftime('%Y%m%d')}-{until_date.strftime('%Y%m%d')}_month-report.md"
         period_name = "月报"
     else:
         print(f"[AI] report_type={report_type} 无效，跳过报告生成。")
         return
 
-    print(f"[AI] 正在生成{period_name}报告...\n\n")
+    print(f"[AI] 正在生成{period_name}报告...\n")
 
     # 构造提示词
     system_prompt = f"你是一位资深前端经理，你需要根据下面的json来书写{period_name}。"
@@ -95,16 +99,25 @@ def generate_report(report_type, commits_data, model="gpt-3.5-turbo"):
         # 写入报告文件
         with open(filename, "w", encoding="utf-8") as f:
             f.write(ai_text)
-            f.write("\n\n---\n")
-            f.write("**Tokens 用量信息**:\n")
-            f.write(f"- prompt_tokens: {prompt_tokens}\n")
-            f.write(f"- completion_tokens: {completion_tokens}\n")
-            f.write(f"- total_tokens: {total_tokens}\n")
+        # 下面是Ai的token用量信息，可以根据需求自行决定是否输出到文件
+        # f.write("\n\n---\n")
+        # f.write("**Tokens 用量信息**:\n")
+        # f.write(f"- prompt_tokens: {prompt_tokens}\n")
+        # f.write(f"- completion_tokens: {completion_tokens}\n")
+        # f.write(f"- total_tokens: {total_tokens}\n")
 
         print(f"[AI] 已生成 {period_name}：{filename}")
         print(f"    tokens 用量: prompt={prompt_tokens}, completion={completion_tokens}, total={total_tokens}")
 
     except requests.exceptions.RequestException as e:
-        print(f"[AI] 调用 AI 接口失败: {e}")
+        print(
+            f"[AI] 调用 AI 接口失败: {e}")
+        print(
+            f"[AI] 可以在“gitOutput/prompt/xxx_prompt.txt”中找到输出的提示词在web中手动提问")
+        with open(f"gitOutput/prompt/{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}_prompt.txt", "w",
+                  encoding="utf-8") as f:
+            f.write(system_prompt)
+            f.write("\n")
+            f.write(user_prompt)
     except Exception as e:
         print(f"[AI] 处理返回结果时出现异常: {e}")

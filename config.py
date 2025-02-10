@@ -62,7 +62,7 @@ def merge_config(cli_args, file_config):
     # 5) Output JSON
     final_cfg["default_output_file"] = (
         cli_args.output if hasattr(cli_args, "output") and cli_args.output
-        else file_config.get("default_output_file", "output.json")
+        else file_config.get("default_output_file", "gitOutput/output.json")
     )
 
     return final_cfg
